@@ -13,30 +13,22 @@
         .container { max-width: 500px; margin: 0 auto; padding: 20px; }
         .screen { display: none; }
         .screen.active { display: block; }
-        
         .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
         h1 { font-size: 24px; font-weight: bold; }
-        
         .card { background: var(--c); border-radius: 12px; padding: 15px; margin-bottom: 10px; border: 1px solid #ddd; position: relative; }
         .btn-add { background: var(--p); color: white; border: none; width: 40px; height: 40px; border-radius: 8px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
-        
-        /* СТАРЫЙ ДИЗАЙН ПОЛЕЙ */
         input, select { width: 100%; padding: 12px; border-radius: 8px; border: 1px solid #ccc; margin-bottom: 15px; font-size: 16px; background: #fff; }
         label { display: block; font-size: 12px; font-weight: bold; margin-bottom: 5px; color: var(--m); }
-
         .btn-submit { width: 100%; padding: 15px; background: var(--p); color: white; border: none; border-radius: 8px; font-weight: bold; font-size: 16px; }
         .tag { display: inline-block; padding: 4px 8px; background: #eee; border-radius: 4px; font-size: 12px; margin: 2px; }
         .leader-info { font-weight: bold; color: var(--p); margin-bottom: 5px; display: block; }
-
         #modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: white; z-index: 200; padding: 20px; overflow-y: auto; }
         .nav { position: fixed; bottom: 0; width: 100%; max-width: 500px; background: #fff; border-top: 1px solid #ddd; display: flex; padding: 10px 0; }
         .nav-item { border: none; background: none; color: var(--m); flex: 1; display: flex; flex-direction: column; align-items: center; font-size: 12px; }
         .nav-item.active { color: var(--p); }
-
         .song-picker-box { border: 1px solid #ddd; padding: 10px; border-radius: 8px; max-height: 150px; overflow-y: auto; }
         .song-item { padding: 10px; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; }
         .song-item.selected { background: #eef2ff; color: var(--p); font-weight: bold; }
-        
         #loader { position: fixed; top: 0; left: 0; width: 100%; height: 3px; background: var(--p); display: none; z-index: 1000; }
     </style>
 </head>
@@ -47,7 +39,7 @@
 <div class="container">
     <section id="schedule" class="screen active">
         <div class="header"><h1>График</h1><button class="btn-add" onclick="openServiceForm()"><i data-lucide="plus"></i></button></div>
-        <div id="list-services">Загрузка...</div>
+        <div id="list-services">Инициализация...</div>
     </section>
 
     <section id="songs" class="screen">
@@ -73,54 +65,82 @@
 </div>
 
 <script>
+    // Проверка глобальной переменной Supabase
+    const { createClient } = window.supabase;
+
     // === ДАННЫЕ ОБЛАКА ===
-    const SUPABASE_URL = 'https://vnqqtepmxskwyusrehgf.supabase.co';
-    const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZucXF0ZXBteHNrd3l1c3JlaGdmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjgyNDQ0MTcsImV4cCI6MjA4MzgyMDQxN30.XkezZ2tMAu1z__7x2xvX5NcXrwsJk3ktyy2z-G5mocE';
+    const PROJECT_URL = 'https://lbvwqkknabgxvgcields.supabase.co';
+    const ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imxidndxa2tuYWJneHZnY2llbGRzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njg0MTkzNDUsImV4cCI6MjA4Mzk5NTM0NX0.5Saze2DCH74pjUKUAdiFUdCx8bDmWmGF4nkbQwN4XF8';
     // =====================
 
-    const supabase = libsupabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    const worshipApp = createClient(PROJECT_URL, ANON_KEY);
+    
     const ROLES = ["Гитара", "Бас", "Барабаны", "Клавиши", "Вокал", "Бэк-вокал"];
     let state = { services: [], songs: [], team: [] };
     let tempPlaylist = [];
     let cloudId = null;
 
-    async function load() {
-        document.getElementById('loader').style.display = 'block';
-        const { data } = await supabase.from('app_state').select('*').limit(1).single();
-        if (data) { state = data.data; cloudId = data.id; render(); }
-        document.getElementById('loader').style.display = 'none';
+    async function loadData() {
+        const loader = document.getElementById('loader');
+        if (loader) loader.style.display = 'block';
+        
+        try {
+            const { data, error } = await worshipApp.from('app_state').select('*').limit(1).single();
+            if (data) { 
+                state = data.data; 
+                cloudId = data.id; 
+                renderUI(); 
+            } else if (error) {
+                console.error("Ошибка:", error);
+                document.getElementById('list-services').innerText = "Данные не найдены в базе.";
+            }
+        } catch (e) {
+            console.error("Критическая ошибка:", e);
+        }
+        
+        if (loader) loader.style.display = 'none';
     }
 
-    async function sync() {
-        document.getElementById('loader').style.display = 'block';
-        await supabase.from('app_state').update({ data: state }).eq('id', cloudId);
-        document.getElementById('loader').style.display = 'none';
-        render();
+    async function syncData() {
+        if (cloudId) {
+            await worshipApp.from('app_state').update({ data: state }).eq('id', cloudId);
+        }
+        renderUI();
     }
 
-    // Авто-обновление
-    supabase.channel('any').on('postgres_changes', { event: '*', schema: 'public', table: 'app_state' }, p => {
-        state = p.new.data; render();
+    worshipApp.channel('any').on('postgres_changes', { event: '*', schema: 'public', table: 'app_state' }, payload => {
+        if (payload.new) {
+            state = payload.new.data; 
+            renderUI();
+        }
     }).subscribe();
 
-    function render() {
-        document.getElementById('list-services').innerHTML = state.services.sort((a,b)=>a.day-b.day).map((s,i) => `
-            <div class="card" onclick="openSvc(${i})">
-                <span class="leader-info">Лидер: ${s.leader} (${s.leaderInst})</span>
-                <div><b>${s.day} янв</b> - ${s.type}</div>
-                <div style="margin-top:5px">${s.members.map(m=>`<span class="tag">${m.role}: ${m.name}</span>`).join('')}</div>
-                <div style="font-size:12px; color:gray; margin-top:5px">♫ ${s.playlist.join(', ')}</div>
-                <button onclick="event.stopPropagation(); deleteSvc(${i})" style="position:absolute; top:10px; right:10px; border:none; background:none; color:red">×</button>
-            </div>
-        `).join('') || 'График пуст';
+    function renderUI() {
+        const svcList = document.getElementById('list-services');
+        if (svcList) {
+            svcList.innerHTML = state.services.sort((a,b)=>a.day-b.day).map((s,i) => `
+                <div class="card" onclick="openSvc(${i})">
+                    <span class="leader-info">Лидер: ${s.leader} (${s.leaderInst})</span>
+                    <div><b>${s.day} янв</b> - ${s.type}</div>
+                    <div style="margin-top:5px">${s.members.map(m=>`<span class="tag">${m.role}: ${m.name}</span>`).join('')}</div>
+                    <div style="font-size:12px; color:gray; margin-top:5px">♫ ${s.playlist.join(', ')}</div>
+                    <button onclick="event.stopPropagation(); deleteSvc(${i})" style="position:absolute; top:10px; right:10px; border:none; background:none; color:red">×</button>
+                </div>
+            `).join('') || 'График пуст';
+        }
 
-        document.getElementById('list-folders').innerHTML = state.team.map(m => `
-            <div class="card" onclick="openFolder('${m.name}')">📁 <b>${m.name}</b> (${state.songs.filter(s=>s.owner===m.name).length} песен)</div>
-        `).join('');
+        const folderList = document.getElementById('list-folders');
+        if (folderList) {
+            folderList.innerHTML = state.team.map(m => `
+                <div class="card" onclick="openFolder('${m.name}')">📁 <b>${m.name}</b> (${state.songs.filter(s=>s.owner===m.name).length} песен)</div>
+            `).join('') || 'Добавьте участников в Команду';
+        }
 
-        document.getElementById('list-team').innerHTML = state.team.map((m,i) => `
+        const teamList = document.getElementById('list-team');
+        if (teamList) { teamList.innerHTML = state.team.map((m,i) => `
             <div class="card">${m.name} <button onclick="deleteTeam(${i})" style="float:right; border:none; background:none; color:red">Удалить</button></div>
-        `).join('');
+        `).join('') || 'Список пуст';
+        }
         lucide.createIcons();
     }
 
@@ -137,12 +157,12 @@
         const dates = []; for(let i=1; i<=31; i++) { const d=new Date(2026,0,i); if(d.getDay()===0||d.getDay()===2) dates.push({d:i, l:`${i} янв (${d.getDay()===0?'Вс':'Вт'})`}); }
         showModal('Новое служение', `
             <label>Дата</label><select id="sv_d">${dates.map(d=>`<option value="${d.d}">${d.l}</option>`).join('')}</select>
-            <label>Лидер</label><select id="l1">${state.team.map(m=>`<option>${m.name}</option>`).join('')}</select>
+            <label>Лидер</label><select id="l1">${state.team.map(m=>`<option>${m.name}</option>`).join('') || '<option disabled>Добавьте команду</option>'}</select>
             <label>Инструмент</label><select id="l_i"><option>Вокал</option><option>Гитара</option></select>
-            <label>Выбор песен: Чья папка?</label>
+            <label>Песни: Из чьей папки?</label>
             <select onchange="renderSongPicker(this.value)"><option value="">-- Выбрать --</option>${state.team.map(m=>`<option>${m.name}</option>`).join('')}</select>
             <div id="picker-res" class="song-picker-box"></div>
-            <button class="btn-submit" onclick="addSvc()">Создать</button>
+            <button class="btn-submit" style="margin-top:10px" onclick="addSvc()">Создать</button>
         `);
     }
 
@@ -160,16 +180,17 @@
 
     async function addSvc() {
         const d = document.getElementById('sv_d').value;
-        state.services.push({ day: d, leader: document.getElementById('l1').value, leaderInst: document.getElementById('l_i').value, type: new Date(2026,0,d).getDay()===0?'Воскресное':'Вторник', playlist: tempPlaylist, members: [] });
-        closeModal(); await sync();
+        const leader = document.getElementById('l1').value;
+        if (!leader) return alert('Выберите лидера!');
+        state.services.push({ day: d, leader: leader, leaderInst: document.getElementById('l_i').value, type: new Date(2026,0,d).getDay()===0?'Воскресное':'Вторник', playlist: [...tempPlaylist], members: [] });
+        closeModal(); await syncData();
     }
 
     function openSvc(idx) {
         const s = state.services[idx];
         showModal('Детали', `
             <button class="btn-submit" onclick="showJoin(${idx})">Записаться в состав</button>
-            <button class="btn-submit" style="background:#64748b; margin-top:10px" onclick="editSvc(${idx})">Редактировать план</button>
-            <div style="margin-top:20px">${s.members.map((m,mi)=>`<div><b>${m.role}:</b> ${m.name} <button onclick="rmM(${idx},${mi})" style="color:red; border:none; background:none">×</button></div>`).join('')}</div>
+            <div style="margin-top:20px">${s.members.map((m,mi)=>`<div><b>${m.role}:</b> ${m.name} <button onclick="rmM(${idx},${mi})" style="color:red; border:none; background:none">×</button></div>`).join('') || 'Состав не набран'}</div>
         `);
     }
 
@@ -181,31 +202,27 @@
         `);
     }
 
-    async function confirmJoin(idx) { state.services[idx].members.push({name:document.getElementById('j_n').value, role:document.getElementById('j_r').value}); closeModal(); await sync(); }
-    async function rmM(idx, mi) { state.services[idx].members.splice(mi,1); await sync(); openSvc(idx); }
-    async function deleteSvc(idx) { if(confirm("Удалить?")) { state.services.splice(idx,1); await sync(); } }
-
+    async function confirmJoin(idx) { state.services[idx].members.push({name:document.getElementById('j_n').value, role:document.getElementById('j_r').value}); closeModal(); await syncData(); }
+    async function rmM(idx, mi) { state.services[idx].members.splice(mi,1); await syncData(); openSvc(idx); }
+    async function deleteSvc(idx) { if(confirm("Удалить?")) { state.services.splice(idx,1); await syncData(); } }
     function openFolder(owner) {
         const songs = state.songs.filter(s=>s.owner===owner);
         showModal(`Папка: ${owner}`, `
             <button class="btn-submit" onclick="addSongPop('${owner}')">+ Добавить песню</button>
-            <div style="margin-top:15px">${songs.map(s=>`<div><b>${s.title}</b> [${s.key}] <button onclick="rmSong('${s.title}','${owner}')" style="color:red; border:none; background:none">×</button></div>`).join('')}</div>
+            <div style="margin-top:15px">${songs.map(s=>`<div style="padding:8px 0; border-bottom:1px solid #eee"><b>${s.title}</b> [${s.key}] <button onclick="rmSong('${s.title}','${owner}')" style="float:right; color:red; border:none; background:none">×</button></div>`).join('') || 'Песен нет'}</div>
         `);
     }
-
-    function addSongPop(o) {
-        showModal('Новая песня', `<label>Название</label><input id="nt"><label>Тональность</label><input id="nk"><button class="btn-submit" onclick="confirmSong('${o}')">OK</button>`);
-    }
-    async function confirmSong(o) { state.songs.push({title:document.getElementById('nt').value, key:document.getElementById('nk').value, owner:o}); await sync(); openFolder(o); }
-    async function rmSong(t,o) { state.songs=state.songs.filter(s=>!(s.title===t && s.owner===o)); await sync(); openFolder(o); }
-
-    function openMemberForm() { showModal('Команда', `<input id="mn" placeholder="Имя"><button class="btn-submit" onclick="addM()">OK</button>`); }
-    async function addM() { const n=document.getElementById('mn').value; if(n){state.team.push({name:n}); closeModal(); await sync();} }
-    async function deleteTeam(i) { if(confirm("Удалить?")) { state.team.splice(i,1); await sync(); } }
-
+    function addSongPop(o) { showModal('Новая песня', `<label>Название</label><input id="nt"><label>Тональность</label><input id="nk"><button class="btn-submit" onclick="confirmSong('${o}')">OK</button>`); }
+    async function confirmSong(o) { const t=document.getElementById('nt').value; const k=document.getElementById('nk').value; if(t){ state.songs.push({title:t, key:k, owner:o}); await syncData(); openFolder(o); } }
+    async function rmSong(t,o) { state.songs=state.songs.filter(s=>!(s.title===t && s.owner===o)); await syncData(); openFolder(o); }
+    function openMemberForm() { showModal('Команда', `<input id="mn" placeholder="Имя Фамилия"><button class="btn-submit" onclick="addM()">Добавить</button>`); }
+    async function addM() { const n=document.getElementById('mn').value; if(n){state.team.push({name:n}); closeModal(); await syncData();} }
+    async function deleteTeam(i) { if(confirm("Удалить?")) { state.team.splice(i,1); await syncData(); } }
     function showModal(t, c) { document.getElementById('modal-title').innerText = t; document.getElementById('modal-content').innerHTML = c; document.getElementById('modal').style.display = 'block'; lucide.createIcons(); }
     function closeModal() { document.getElementById('modal').style.display = 'none'; }
-    load();
+
+    // Запуск приложения
+    loadData();
 </script>
 </body>
 </html>
