@@ -3,78 +3,89 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Worship Pro Classic Cloud</title>
+    <title>Worship Pro Cloud</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <style>
         :root { 
-            --p: #4f46e5; --bg: #f1f5f9; --c: #ffffff; 
+            --p: #4f46e5; --bg: #f8fafc; --c: #ffffff; 
             --t: #0f172a; --m: #64748b; --d: #ef4444; 
         }
         * { margin:0; padding:0; box-sizing:border-box; font-family: -apple-system, system-ui, sans-serif; -webkit-tap-highlight-color:transparent; }
         
         body { 
             background: var(--bg); color: var(--t); 
-            padding-bottom: 100px; /* Отступ для меню */
+            padding-bottom: env(safe-area-inset-bottom, 100px);
             line-height: 1.5;
+            overflow-x: hidden;
         }
 
-        .container { max-width: 500px; margin: 0 auto; padding: 16px; }
-        .screen { display: none; animation: fadeIn 0.3s ease; }
+        .container { max-width: 500px; margin: 0 auto; padding: 16px; width: 100%; }
+        .screen { display: none; animation: fadeIn 0.2s ease; }
         .screen.active { display: block; }
         
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 
         /* Шапка */
         .header { display: flex; justify-content: space-between; align-items: center; margin: 10px 0 20px 0; }
-        h1 { font-size: 28px; font-weight: 800; letter-spacing: -0.5px; }
+        h1 { font-size: 28px; font-weight: 800; letter-spacing: -1px; }
         
         /* Карточки */
         .card { 
-            background: var(--c); border-radius: 16px; padding: 16px; 
-            margin-bottom: 12px; border: 1px solid rgba(0,0,0,0.05); 
-            position: relative; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.02);
+            background: var(--c); border-radius: 18px; padding: 18px; 
+            margin-bottom: 12px; border: 1px solid rgba(0,0,0,0.04); 
+            position: relative; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.01);
         }
-        .leader-badge { font-size: 12px; color: var(--p); font-weight: 700; text-transform: uppercase; margin-bottom: 4px; display: block; }
-        .svc-title { font-size: 17px; font-weight: 700; margin-bottom: 8px; }
+        .leader-badge { font-size: 11px; color: var(--p); font-weight: 800; text-transform: uppercase; margin-bottom: 4px; display: block; letter-spacing: 0.5px; }
+        .svc-title { font-size: 18px; font-weight: 700; margin-bottom: 8px; color: var(--t); }
         
         /* Кнопки */
         .btn-add { 
-            background: var(--p); color: white; border: none; width: 44px; height: 44px; 
+            background: var(--p); color: white; border: none; width: 42px; height: 42px; 
             border-radius: 12px; cursor: pointer; display: flex; align-items: center; justify-content: center;
-            box-shadow: 0 4px 12px rgba(79, 70, 229, 0.3);
+            box-shadow: 0 4px 12px rgba(79, 70, 229, 0.2);
         }
-        .btn-submit { width: 100%; padding: 14px; background: var(--p); color: white; border: none; border-radius: 12px; font-weight: 700; font-size: 16px; margin-top: 10px; }
+        .btn-submit { width: 100%; padding: 16px; background: var(--p); color: white; border: none; border-radius: 14px; font-weight: 700; font-size: 16px; margin-top: 10px; }
         
         /* Теги */
-        .tag { display: inline-block; padding: 4px 10px; background: #f1f5f9; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 12px; font-weight: 500; margin: 2px; color: var(--m); }
-        .playlist-info { font-size: 13px; color: var(--m); margin-top: 8px; display: flex; align-items: center; gap: 4px; }
+        .tag { display: inline-block; padding: 5px 12px; background: #f1f5f9; border-radius: 10px; font-size: 12px; font-weight: 600; margin: 2px; color: var(--m); }
+        .playlist-info { font-size: 13px; color: var(--m); margin-top: 10px; display: flex; align-items: center; gap: 6px; font-style: italic; }
 
-        /* Поля ввода */
-        input, select { width: 100%; padding: 14px; border-radius: 12px; border: 1px solid #e2e8f0; margin-bottom: 16px; font-size: 16px; background: #fff; appearance: none; }
-        label { display: block; font-size: 13px; font-weight: 600; margin-bottom: 6px; color: var(--m); margin-left: 4px; }
+        /* Инпуты */
+        input, select { width: 100%; padding: 14px; border-radius: 12px; border: 1px solid #e2e8f0; margin-bottom: 16px; font-size: 16px; background: #fff; appearance: none; outline: none; }
+        label { display: block; font-size: 13px; font-weight: 700; margin-bottom: 6px; color: var(--m); margin-left: 4px; }
 
         /* Модалка */
-        #modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: white; z-index: 200; padding: 20px; overflow-y: auto; }
+        #modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: white; z-index: 2000; padding: 20px; overflow-y: auto; }
 
-        /* Нижнее меню - ИСПРАВЛЕНО */
+        /* НИЖНЕЕ МЕНЮ - ТЕПЕРЬ СИММЕТРИЧНОЕ */
         .nav { 
-            position: fixed; bottom: 0; left: 0; right: 0; width: 100%; max-width: 500px; margin: 0 auto;
-            background: rgba(255, 255, 255, 0.9); backdrop-filter: blur(15px); -webkit-backdrop-filter: blur(15px);
-            border-top: 1px solid rgba(0,0,0,0.08); display: flex; 
-            padding: 12px 0 28px 0; /* Больше места снизу */
-            z-index: 100; box-shadow: 0 -4px 10px rgba(0,0,0,0.03);
+            position: fixed; bottom: 0; left: 0; right: 0; 
+            width: 100%; max-width: 500px; margin: 0 auto;
+            background: rgba(255, 255, 255, 0.98); 
+            backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+            border-top: 1px solid rgba(0,0,0,0.06); 
+            display: grid; grid-template-columns: 1fr 1fr 1fr; /* Ровно 3 колонки */
+            padding-top: 12px;
+            padding-bottom: calc(14px + env(safe-area-inset-bottom, 20px)); /* Умный отступ для iPhone */
+            z-index: 1000;
         }
-        .nav-item { border: none; background: none; color: var(--m); flex: 1; display: flex; flex-direction: column; align-items: center; font-size: 11px; font-weight: 600; gap: 4px; }
+        .nav-item { 
+            border: none; background: none; color: var(--m); 
+            display: flex; flex-direction: column; 
+            align-items: center; justify-content: center;
+            font-size: 10px; font-weight: 700; gap: 4px;
+            text-decoration: none; transition: color 0.2s;
+        }
         .nav-item.active { color: var(--p); }
-        .nav-item i { width: 22px; height: 22px; }
+        .nav-item i { width: 24px; height: 24px; }
 
         .song-picker-box { border: 1px solid #e2e8f0; padding: 8px; border-radius: 12px; max-height: 200px; overflow-y: auto; background: #f8fafc; }
-        .song-item { padding: 12px; border-radius: 8px; margin-bottom: 4px; background: white; border: 1px solid transparent; display: flex; justify-content: space-between; font-size: 14px; }
-        .song-item.selected { background: #eef2ff; border-color: var(--p); color: var(--p); font-weight: 600; }
+        .song-item { padding: 14px; border-radius: 10px; margin-bottom: 6px; background: white; border: 1px solid transparent; display: flex; justify-content: space-between; font-size: 14px; box-shadow: 0 1px 2px rgba(0,0,0,0.02); }
+        .song-item.selected { background: #eef2ff; border-color: var(--p); color: var(--p); font-weight: 700; }
         
-        #loader { position: fixed; top: 0; left: 0; width: 100%; height: 4px; background: var(--p); display: none; z-index: 1000; }
-        .empty-state { text-align: center; padding: 40px 20px; color: var(--m); font-size: 14px; }
+        #loader { position: fixed; top: 0; left: 0; width: 100%; height: 3px; background: var(--p); display: none; z-index: 3000; }
+        .empty-state { text-align: center; padding: 60px 20px; color: var(--m); font-size: 15px; }
     </style>
 </head>
 <body>
@@ -98,8 +109,8 @@
     </section>
 
     <div id="modal">
-        <div class="header"><h2 id="modal-title" style="font-size: 20px;"></h2><button onclick="closeModal()" style="border:none; background:none; padding:10px;"><i data-lucide="x"></i></button></div>
-        <div id="modal-content" style="margin-top: 10px;"></div>
+        <div class="header"><h2 id="modal-title"></h2><button onclick="closeModal()" style="border:none; background:none; padding:10px;"><i data-lucide="x"></i></button></div>
+        <div id="modal-content"></div>
     </div>
 
     <nav class="nav">
@@ -125,12 +136,8 @@
 
     async function loadData() {
         showLoader(true);
-        const { data, error } = await worshipApp.from('app_state').select('*').limit(1).single();
-        if (data) { 
-            state = data.data; 
-            cloudId = data.id; 
-            renderUI(); 
-        }
+        const { data } = await worshipApp.from('app_state').select('*').limit(1).single();
+        if (data) { state = data.data; cloudId = data.id; renderUI(); }
         showLoader(false);
     }
 
@@ -153,36 +160,36 @@
                 <div class="card" onclick="openSvc(${i})">
                     <span class="leader-badge">${s.leader} • ${s.leaderInst}</span>
                     <div class="svc-title">${s.day} января, ${s.type}</div>
-                    <div style="margin: 8px 0;">${s.members.map(m=>`<span class="tag">${m.role}: ${m.name}</span>`).join('')}</div>
-                    <div class="playlist-info"><i data-lucide="music-2" style="width:14px"></i> ${s.playlist.length > 0 ? s.playlist.join(', ') : 'Список песен пуст'}</div>
-                    <button onclick="event.stopPropagation(); deleteSvc(${i})" style="position:absolute; top:16px; right:16px; border:none; background:none; color:var(--m); opacity:0.5">×</button>
+                    <div style="margin: 4px -2px;">${s.members.map(m=>`<span class="tag">${m.role}: ${m.name}</span>`).join('')}</div>
+                    <div class="playlist-info"><i data-lucide="music" style="width:14px"></i> ${s.playlist.length > 0 ? s.playlist.join(', ') : 'Список песен не составлен'}</div>
+                    <button onclick="event.stopPropagation(); deleteSvc(${i})" style="position:absolute; top:18px; right:18px; border:none; background:none; color:var(--m); opacity:0.3; font-size:20px;">×</button>
                 </div>
-            `).join('') || '<div class="empty-state">Нет запланированных служений. Нажмите +, чтобы создать.</div>';
+            `).join('') || '<div class="empty-state">Пока ничего не запланировано.<br>Нажмите +, чтобы добавить.</div>';
         }
 
         const folderList = document.getElementById('list-folders');
         if (folderList) {
             folderList.innerHTML = state.team.map(m => `
                 <div class="card" onclick="openFolder('${m.name}')">
-                    <div style="display:flex; align-items:center; gap:12px;">
-                        <div style="background:#eef2ff; color:var(--p); width:40px; height:40px; border-radius:10px; display:flex; align-items:center; justify-content:center; font-weight:bold;">${m.name[0]}</div>
+                    <div style="display:flex; align-items:center; gap:16px;">
+                        <div style="background:linear-gradient(135deg, #eef2ff, #e0e7ff); color:var(--p); width:46px; height:46px; border-radius:12px; display:flex; align-items:center; justify-content:center; font-weight:800; font-size:18px;">${m.name[0]}</div>
                         <div>
-                            <div style="font-weight:700;">${m.name}</div>
-                            <div style="font-size:12px; color:var(--m);">${state.songs.filter(s=>s.owner===m.name).length} песен в папке</div>
+                            <div style="font-weight:700; font-size:16px;">${m.name}</div>
+                            <div style="font-size:12px; color:var(--m);">Песен в папке: ${state.songs.filter(s=>s.owner===m.name).length}</div>
                         </div>
                     </div>
                 </div>
-            `).join('') || '<div class="empty-state">Добавьте участников в разделе Команда</div>';
+            `).join('') || '<div class="empty-state">Добавьте участников во вкладке "Команда"</div>';
         }
 
         const teamList = document.getElementById('list-team');
         if (teamList) {
             teamList.innerHTML = state.team.map((m,i) => `
-                <div class="card" style="display:flex; justify-content:space-between; align-items:center;">
-                    <div style="font-weight:600;">${m.name}</div>
-                    <button onclick="deleteTeam(${i})" style="padding:8px; color:var(--d); border:none; background:none; font-weight:600; font-size:13px;">Удалить</button>
+                <div class="card" style="display:flex; justify-content:space-between; align-items:center; padding:14px 18px;">
+                    <div style="font-weight:700;">${m.name}</div>
+                    <button onclick="deleteTeam(${i})" style="padding:6px; color:var(--d); border:none; background:none; font-weight:700; font-size:13px;">Удалить</button>
                 </div>
-            `).join('') || '<div class="empty-state">В команде пока никого нет.</div>';
+            `).join('') || '<div class="empty-state">Список команды пуст.</div>';
         }
         lucide.createIcons();
     }
@@ -199,13 +206,13 @@
         tempPlaylist = [];
         const dates = []; for(let i=1; i<=31; i++) { const d=new Date(2026,0,i); if(d.getDay()===0||d.getDay()===2) dates.push({d:i, l:`${i} янв (${d.getDay()===0?'Вс':'Вт'})`}); }
         showModal('Новое служение', `
-            <label>Дата служения</label><select id="sv_d">${dates.map(d=>`<option value="${d.d}">${d.l}</option>`).join('')}</select>
-            <label>Лидер поклонения</label><select id="l1">${state.team.map(m=>`<option>${m.name}</option>`).join('') || '<option disabled>Добавьте участников в команду</option>'}</select>
+            <label>Дата</label><select id="sv_d">${dates.map(d=>`<option value="${d.d}">${d.l}</option>`).join('')}</select>
+            <label>Лидер</label><select id="l1">${state.team.map(m=>`<option>${m.name}</option>`).join('') || '<option disabled>Добавьте участников</option>'}</select>
             <label>Инструмент лидера</label><select id="l_i"><option>Вокал</option><option>Гитара</option><option>Клавиши</option></select>
-            <label>Выбрать песни (Чья папка?)</label>
+            <label>Выберите песни из папки:</label>
             <select onchange="renderSongPicker(this.value)"><option value="">-- Выбрать папку --</option>${state.team.map(m=>`<option>${m.name}</option>`).join('')}</select>
             <div id="picker-res" class="song-picker-box"></div>
-            <button class="btn-submit" onclick="addSvc()">Создать график</button>
+            <button class="btn-submit" onclick="addSvc()">Создать</button>
         `);
     }
 
@@ -213,10 +220,9 @@
         const area = document.getElementById('picker-res');
         area.innerHTML = state.songs.filter(s=>s.owner===owner).map(s=>`
             <div class="song-item ${tempPlaylist.includes(s.title)?'selected':''}" onclick="tglS('${s.title}', this)">
-                <span>${s.title}</span>
-                <span style="opacity:0.5">${s.key}</span>
+                <span>${s.title}</span><span style="opacity:0.4; font-weight:400;">${s.key}</span>
             </div>
-        `).join('') || '<div style="padding:20px; text-align:center; font-size:12px; color:gray;">В этой папке еще нет песен</div>';
+        `).join('') || '<div style="padding:20px; text-align:center; font-size:13px; color:gray;">Папка пуста</div>';
     }
 
     function tglS(t, el) { 
@@ -227,7 +233,7 @@
     async function addSvc() {
         const d = document.getElementById('sv_d').value;
         const leader = document.getElementById('l1').value;
-        if(!leader) return alert('Сначала добавьте участников в команду!');
+        if(!leader) return;
         state.services.push({ day: d, leader: leader, leaderInst: document.getElementById('l_i').value, type: new Date(2026,0,d).getDay()===0?'Воскресенье':'Вторник', playlist: [...tempPlaylist], members: [] });
         closeModal(); await syncData();
     }
@@ -235,50 +241,50 @@
     function openSvc(idx) {
         const s = state.services[idx];
         showModal('Детали служения', `
-            <div style="background:#f8fafc; padding:15px; border-radius:12px; margin-bottom:15px;">
-                <div style="font-size:13px; color:var(--m);">Песни:</div>
-                <div style="font-weight:600;">${s.playlist.join(', ') || 'Не выбраны'}</div>
+            <div style="background:#f1f5f9; padding:18px; border-radius:14px; margin-bottom:15px;">
+                <div style="font-size:12px; color:var(--m); font-weight:700; text-transform:uppercase; margin-bottom:6px;">Плейлист:</div>
+                <div style="font-weight:700; font-size:15px; color:var(--t);">${s.playlist.join(', ') || 'Песни не выбраны'}</div>
             </div>
             <button class="btn-submit" onclick="showJoin(${idx})">Записаться в состав</button>
             <div style="margin-top:20px;">
                 <label>Текущий состав:</label>
                 ${s.members.map((m,mi)=>`
-                    <div style="display:flex; justify-content:space-between; align-items:center; padding:12px 0; border-bottom:1px solid #eee;">
-                        <div><b>${m.role}:</b> ${m.name}</div>
-                        <button onclick="rmM(${idx},${mi})" style="color:var(--d); border:none; background:none; font-size:18px;">×</button>
+                    <div style="display:flex; justify-content:space-between; align-items:center; padding:14px 0; border-bottom:1px solid #f1f5f9;">
+                        <div><b style="color:var(--p)">${m.role}:</b> ${m.name}</div>
+                        <button onclick="rmM(${idx},${mi})" style="color:var(--d); border:none; background:none; font-size:22px; padding:0 10px;">×</button>
                     </div>
-                `).join('') || '<div style="color:gray; font-size:13px;">Никто еще не записался</div>'}
+                `).join('') || '<div style="color:gray; font-size:14px; padding:10px 0;">Никто еще не записался</div>'}
             </div>
         `);
     }
 
     function showJoin(idx) {
-        showModal('Запись в состав', `
-            <label>Ваше имя</label><select id="j_n">${state.team.map(m=>`<option>${m.name}</option>`).join('')}</select>
-            <label>Ваша роль</label><select id="j_r">${ROLES.map(r=>`<option>${r}</option>`).join('')}</select>
-            <button class="btn-submit" onclick="confirmJoin(${idx})">Подтвердить</button>
+        showModal('Запись', `
+            <label>Имя</label><select id="j_n">${state.team.map(m=>`<option>${m.name}</option>`).join('')}</select>
+            <label>Роль</label><select id="j_r">${ROLES.map(r=>`<option>${r}</option>`).join('')}</select>
+            <button class="btn-submit" onclick="confirmJoin(${idx})">Записаться</button>
         `);
     }
 
     async function confirmJoin(idx) { state.services[idx].members.push({name:document.getElementById('j_n').value, role:document.getElementById('j_r').value}); closeModal(); await syncData(); }
     async function rmM(idx, mi) { state.services[idx].members.splice(mi,1); await syncData(); openSvc(idx); }
-    async function deleteSvc(idx) { if(confirm("Удалить служение?")) { state.services.splice(idx,1); await syncData(); } }
+    async function deleteSvc(idx) { if(confirm("Удалить это служение?")) { state.services.splice(idx,1); await syncData(); } }
     
     function openFolder(owner) {
         const songs = state.songs.filter(s=>s.owner===owner);
         showModal(`Папка: ${owner}`, `
-            <button class="btn-submit" onclick="addSongPop('${owner}')">+ Добавить песню</button>
-            <div style="margin-top:15px">${songs.map(s=>`<div style="display:flex; justify-content:space-between; padding:14px; background:#f8fafc; border-radius:10px; margin-bottom:8px;"><div><b>${s.title}</b> <span style="color:var(--m)">[${s.key}]</span></div><button onclick="rmSong('${s.title}','${owner}')" style="color:var(--d); border:none; background:none;">×</button></div>`).join('') || '<div style="text-align:center; padding:20px; color:gray;">Папка пуста</div>'}</div>
+            <button class="btn-submit" style="margin-bottom:15px" onclick="addSongPop('${owner}')">+ Новая песня</button>
+            <div>${songs.map(s=>`<div style="display:flex; justify-content:space-between; padding:16px; background:#f8fafc; border-radius:12px; margin-bottom:8px; border:1px solid #f1f5f9;"><div><b style="font-size:15px;">${s.title}</b> <span style="color:var(--m); font-size:13px;">[${s.key}]</span></div><button onclick="rmSong('${s.title}','${owner}')" style="color:var(--d); border:none; background:none; font-size:18px;">×</button></div>`).join('') || '<div style="text-align:center; padding:20px; color:gray;">Папка пуста</div>'}</div>
         `);
     }
 
-    function addSongPop(o) { showModal('Новая песня', `<label>Название</label><input id="nt" placeholder="Название песни"><label>Тональность</label><input id="nk" placeholder="Например: G (Em)"><button class="btn-submit" onclick="confirmSong('${o}')">Добавить</button>`); }
+    function addSongPop(o) { showModal('Добавить песню', `<label>Название</label><input id="nt" placeholder="Название песни"><label>Тональность</label><input id="nk" placeholder="Напр: G (Em)"><button class="btn-submit" onclick="confirmSong('${o}')">Сохранить</button>`); }
     async function confirmSong(o) { const t=document.getElementById('nt').value; const k=document.getElementById('nk').value; if(t){ state.songs.push({title:t, key:k, owner:o}); await syncData(); openFolder(o); } }
     async function rmSong(t,o) { state.songs=state.songs.filter(s=>!(s.title===t && s.owner===o)); await syncData(); openFolder(o); }
     
-    function openMemberForm() { showModal('Команда', `<label>Имя участника</label><input id="mn" placeholder="Имя Фамилия"><button class="btn-submit" onclick="addM()">Добавить в команду</button>`); }
+    function openMemberForm() { showModal('Команда', `<label>Имя и фамилия</label><input id="mn" placeholder="Иван Иванов"><button class="btn-submit" onclick="addM()">Добавить</button>`); }
     async function addM() { const n=document.getElementById('mn').value; if(n){state.team.push({name:n}); closeModal(); await syncData();} }
-    async function deleteTeam(i) { if(confirm("Удалить участника? Все его песни в папках сохранятся, но он исчезнет из списков выбора.")) { state.team.splice(i,1); await syncData(); } }
+    async function deleteTeam(i) { if(confirm("Удалить участника?")) { state.team.splice(i,1); await syncData(); } }
 
     function showModal(t, c) { document.getElementById('modal-title').innerText = t; document.getElementById('modal-content').innerHTML = c; document.getElementById('modal').style.display = 'block'; lucide.createIcons(); }
     function closeModal() { document.getElementById('modal').style.display = 'none'; }
